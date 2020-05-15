@@ -31,9 +31,9 @@ double MIN(const arma::vec& a, double m){
   return(min(b));
 }
 
-arma::vec THpopstruct = {3596052, 3843780, 4113805, 4378506, 4807904, 
-4822404, 4466694, 4763033, 5308840, 5605417, 5598953, 5082441, 4367653,
- 3256703, 2282338, 1584230, 1070912, 563683, 225198, 52666, 8766};
+arma::vec THpopstruct = {3596052.0, 3843780.0, 4113805.0, 4378506.0, 4807904.0, 
+4822404.0, 4466694.0, 4763033.0, 5308840.0, 5605417.0, 5598953.0, 5082441.0, 4367653.0,
+ 3256703.0, 2282338.0, 1584230.0, 1070912.0, 563683.0, 225198.0, 52666.0, 8766.0};
 
 arma::vec THpopbirth = {
 0.000000e+00, 0.000000e+00, 0.000000e+00, 6.303758e-05, 1.025998e-04, 1.056259e-04, 
@@ -57,7 +57,9 @@ arma::vec mort = {
   
 // [[Rcpp::export]]
 List covidTH(double t, arma::vec y, List parameters){
-
+    
+    //Rf_PrintValue(parameters);
+  
     double p = parameters["p"];
     double rho = parameters["rho"];
     double omega = parameters["omega"];
@@ -182,7 +184,7 @@ List covidTH(double t, arma::vec y, List parameters){
   arma::vec VentC = y.subvec(19*A,20*A-1);
   arma::vec CMC = y.subvec(20*A,21*A-1);
 
-  double P = sum(S+E+I+R+X+V+H+HC+QS+QE+QI+QR+CL+QC+ICU+ICUC+Vent+VentC);
+  arma::vec P = (S+E+I+R+X+V+H+HC+QS+QE+QI+QR+CL+QC+ICU+ICUC+Vent+VentC);
          
 
 // health system performance
@@ -198,20 +200,21 @@ List covidTH(double t, arma::vec y, List parameters){
    double crit = std::min(1.0-SplineFun(xICU, f,sum(ICU)+sum(Vent)+sum(VentC)),1.0);
    double critV = std::min(1.0-SplineFun(xVent, f,sum(Vent)),1.0);
 
+     
 // interventions
-    double isolation = (t>=selfis_on)*(t<=selfis_on+selfis_dur);
-    double distancing = (t>=dist_on)*(t<=(dist_on+dist_dur));
-    double handwash = (t>=hand_on)*(t<=(hand_on+hand_dur));
-    double workhome = (t>=work_on)*(t<=(work_on+work_dur));
-    double schoolclose = (t>=school_on)*(t<=(school_on+school_dur));
-    double cocoon = (t>=cocoon_on)*(t<=(cocoon_on+cocoon_dur))*cocoon_cov;
-    double vaccine = (t>=(vaccine_on))*(t<=vaccine_on+vac_campaign);
-    double travelban = (t>=travelban_on)*(t<=(travelban_on+travelban_dur));
-    double screen = (t>=screen_on)*(t<=(screen_on+screen_dur));
-    double quarantine = (t>=quarantine_on)*(t<=(quarantine_on+quarantine_dur));
-    double lockdown_low = (t>=lockdown_low_on)*(t<=(lockdown_low_on+lockdown_low_dur));
-    double lockdown_mid = (t>=lockdown_mid_on)*(t<=(lockdown_mid_on+lockdown_mid_dur));
-    double lockdown_high = (t>=lockdown_high_on)*(t<=(lockdown_high_on+lockdown_high_dur));
+    int isolation = (t>=selfis_on)*(t<=selfis_on+selfis_dur);
+    int distancing = (t>=dist_on)*(t<=(dist_on+dist_dur));
+    int handwash = (t>=hand_on)*(t<=(hand_on+hand_dur));
+    int workhome = (t>=work_on)*(t<=(work_on+work_dur));
+    int schoolclose = (t>=school_on)*(t<=(school_on+school_dur));
+    int cocoon = (t>=cocoon_on)*(t<=(cocoon_on+cocoon_dur))*cocoon_cov;
+    int vaccine = (t>=(vaccine_on))*(t<=vaccine_on+vac_campaign);
+    int travelban = (t>=travelban_on)*(t<=(travelban_on+travelban_dur));
+    int screen = (t>=screen_on)*(t<=(screen_on+screen_dur));
+    int quarantine = (t>=quarantine_on)*(t<=(quarantine_on+quarantine_dur));
+    int lockdown_low = (t>=lockdown_low_on)*(t<=(lockdown_low_on+lockdown_low_dur));
+    int lockdown_mid = (t>=lockdown_mid_on)*(t<=(lockdown_mid_on+lockdown_mid_dur));
+    int lockdown_high = (t>=lockdown_high_on)*(t<=(lockdown_high_on+lockdown_high_dur));
 
     double screen_eff = 0.0;
     double selfis = 0.0;
@@ -317,14 +320,15 @@ if (lockdown_low || lockdown_mid || lockdown_high){
 
         // Final transmission related parameters
         arma::mat contacts = (1.0-cocoon)*cts+cocoon*cts*cocoon_mat+cocoon*(1.0+school*(1.0-school_eff)+work*(1.0-work_eff))*contact_home*(1.0-cocoon_mat);
-        double seas = 1.0+amp*cos(2*3.1416*(t-(phi*365.25/12.))/365.25);
+        double seas = 1.0+amp*cos(2*3.14*(t-(phi*365.25/12.))/365.25);
         double importation = mean_imports*(1.0-trvban_eff);
         
         arma::vec HH = H+ICU+Vent;
         arma::vec HHC = HC+ICUC+VentC;
 
         arma::vec lam = (1.0-hand)*p*seas*(contacts*((rho*E+(I+CL+importation)+(1.0-selfis_eff)*(X+HHC)+rhos*(HH))/P));
-        // # contacts under home quarantine
+        
+                // # contacts under home quarantine
         arma::vec lamq = (1.0-hand)*p*seas*((1.0-quarantine_eff_home)*contact_home*(((1.0-selfis_eff)*(X+HHC))/P))+(1.0-hand)*p*seas*(1.0-quarantine_eff_other)*(contact_other*((rho*E+(I+CL+importation)+(1.0-selfis_eff)*(X+HHC)+rhos*(HH))/P));
          
         // # birth/death
